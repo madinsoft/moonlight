@@ -130,6 +130,13 @@
             <ChartBatterySoc :data="chartData.batterySoc" />
           </GraphCard>
         </div>
+
+        <!-- Energy Flow Diagram -->
+        <EnergyFlowDiagram 
+          v-if="dailyStats && chartData"
+          :stats="dailyStats"
+          :chartData="chartData"
+        />
       </div>
     </main>
 
@@ -150,6 +157,7 @@ import ChartProduction from './components/ChartProduction.vue'
 import ChartConsumption from './components/ChartConsumption.vue'
 import ChartNetwork from './components/ChartNetwork.vue'
 import ChartBatterySoc from './components/ChartBatterySoc.vue'
+import EnergyFlowDiagram from './components/EnergyFlowDiagram.vue'
 import { loadCSVData } from './services/dataLoader'
 import { processDataForDate, calculateDailyStats } from './services/dataProcessor'
 
