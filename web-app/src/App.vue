@@ -88,6 +88,12 @@
           :stats="dailyStats"
         />
 
+        <!-- Animation Controls -->
+        <ChartPlayerControls 
+          v-if="chartData.production.length"
+          :time-labels="chartData.production.map(d => d.time)"
+        />
+
         <!-- Charts -->
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           <!-- Production Chart -->
@@ -158,6 +164,7 @@ import ChartConsumption from './components/ChartConsumption.vue'
 import ChartNetwork from './components/ChartNetwork.vue'
 import ChartBatterySoc from './components/ChartBatterySoc.vue'
 import EnergyFlowDiagram from './components/EnergyFlowDiagram.vue'
+import ChartPlayerControls from './components/ChartPlayerControls.vue'
 import { loadCSVData } from './services/dataLoader'
 import { processDataForDate, calculateDailyStats } from './services/dataProcessor'
 

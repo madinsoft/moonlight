@@ -1,11 +1,11 @@
 <template>
-  <div class="chart-container">
-    <Line :data="chartData" :options="chartOptions" />
+  <div class="relative h-80">
+    <Line :chart-id="'chart-consumption'" ref="chartRef" :data="chartData" :options="chartOptions" />
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -18,6 +18,8 @@ import {
   Filler
 } from 'chart.js'
 import { getChartConfig } from '../services/chartConfig'
+import { timeIndicatorPlugin } from '@/services/timeIndicatorPlugin'
+import { animationStore } from '@/services/animationStore'
 
 ChartJS.register(
   CategoryScale,
@@ -26,7 +28,8 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Filler
+  Filler,
+  timeIndicatorPlugin
 )
 
 const props = defineProps({
@@ -37,33 +40,30 @@ const props = defineProps({
   }
 })
 
+const chartRef = ref(null);
+
 const chartData = computed(() => ({
   labels: props.data.map(d => d.time),
   datasets: [
     {
-      label: 'Production',
+      label: 'Consommation (kW)',
       data: props.data.map(d => d.value),
-      borderColor: '#3b82f6',
-      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+      borderColor: '#f59e0b',
+      backgroundColor: 'rgba(245, 158, 11, 0.1)',
       borderWidth: 2,
       fill: true,
       tension: 0.4,
       pointRadius: 0,
       pointHoverRadius: 4,
-      pointHoverBackgroundColor: '#3b82f6',
-      pointHoverBorderColor: '#fff',
-      pointHoverBorderWidth: 2
     }
   ]
 }))
 
-const chartOptions = computed(() => getChartConfig('production'))
-</script>
+const chartOptions = computed(() => getChartConfig('consumption'))
 
-<style scoped>
-.chart-container {
-  position: relative;
-  height: 100%;
-  min-height: 300px;
-}
-</style>
+watch(() => animationStore.currentIndex, () => {
+  if (chartRef.value) {
+    chartRef.value.chart.update('none');
+  }
+});
+</script>

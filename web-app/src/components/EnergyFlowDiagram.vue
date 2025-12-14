@@ -41,6 +41,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { animationStore } from '@/services/animationStore';
 
 const props = defineProps({
   stats: {
@@ -58,6 +59,25 @@ const flows = computed(() => {
     return {};
   }
 
+  // If animation is playing, use instantaneous values
+  if (animationStore.isPlaying && animationStore.currentIndex !== null) {
+    const i = animationStore.currentIndex;
+    const prod = props.chartData.production[i]?.value || 0;
+    const cons = props.chartData.consumption[i]?.value || 0;
+    const batt = props.chartData.battery[i]?.value || 0;
+    const net = props.chartData.network[i]?.value || 0;
+
+    return {
+      solarToCenter: prod > 0,
+      centerToHouse: cons > 0,
+      centerToBattery: batt < 0, // Charging is negative
+      batteryToCenter: batt > 0, // Discharging is positive
+      centerToGrid: net > 0,
+      gridToCenter: net < 0,
+    };
+  }
+
+  // Fallback to daily totals when not playing
   const { production, consumption, network } = props.stats;
   const batteryFlows = props.chartData.battery || [];
   

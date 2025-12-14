@@ -1,16 +1,18 @@
 <template>
   <div class="relative h-80">
-    <Line :data="chartData" :options="chartOptions" />
+    <Line :chart-id="'chart-production'" ref="chartRef" :data="chartData" :options="chartOptions" />
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, watch, ref } from 'vue'
 import { Line } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js'
 import { getChartConfig } from '@/services/chartConfig'
+import { timeIndicatorPlugin } from '@/services/timeIndicatorPlugin'
+import { animationStore } from '@/services/animationStore'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler, timeIndicatorPlugin)
 
 const props = defineProps({
   data: {
@@ -18,6 +20,8 @@ const props = defineProps({
     default: () => []
   }
 })
+
+const chartRef = ref(null);
 
 const chartData = computed(() => ({
   labels: props.data.map(d => d.time),
@@ -35,4 +39,10 @@ const chartData = computed(() => ({
 }))
 
 const chartOptions = computed(() => getChartConfig('production'))
+
+watch(() => animationStore.currentIndex, () => {
+  if (chartRef.value) {
+    chartRef.value.chart.update('none'); // 'none' prevents animation, giving instant feedback
+  }
+});
 </script>
