@@ -1,0 +1,22 @@
+---------------------------------------------------- constitution
+Application avec une esthetique moderne, type single page, réactive, theme sombre de gris et de bleu sombre. Application performante dans un navigateur et souci de l'ergonomie de la poistion des éléments dans la page. 
+---------------------------------------------------- spec
+Construire une application web qui permet de visualiser les courbes de production solaire, de consommation d'un quartier et la résultant sur le réseau. 
+Chercher sur internet des exemples de production solaire typique du sud de la france, sur une année, au pas du quart d'heure. 
+Chercher sur internet des exemples de consommation d'un quartier résidentiel en france. 
+Ecrire un script à part qui permet de récupérer ces données avant de lancer l'application. 
+Mettre le résultat dans des fichiers csv dans le répertoire data.
+au lancement de l'application:
+Mettre à l'échelle la production solaire pour faire correspondre à la consommation, que le cumul énergetique de production sur une journee corresponde corresponde à peu près à une journée de consomation du quartier.
+L'application permet de choisir un jour du calendrier sur l'année récupérée.
+Afficher la production solaire dans un graphe, en dessous la consommation du quartier pour ce jour la, en dessous la résultante d'appel ou d'injection de courant sur le réseau difference entre la production solaire et la consommation. Afficher le graph en dessous.
+---------------------------------------------------- plan
+utiliser node et vue.js pour l'application. Choisir des éléments esthetique moderne. Bien positionner les elements pour que cela soit ergonomique. Pas de base de données, tout mettre dans des fichiers csv dans des répertoires.
+Pour le script de récupération de données utiliser python.
+---------------------------------------------------- task
+Lister les taches pour construire le script de récupération des données et de l'application.
+---------------------------------------------------- implementation
+Quand la liste est bien défini, générer les fichiers et indiquer leur emplacement sur le disque
+
+
+

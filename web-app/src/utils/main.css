@@ -1,0 +1,136 @@
+@import './theme.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-dark-border;
+  }
+
+  body {
+    @apply bg-dark-bg text-gray-light font-sans antialiased;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-gray-dark rounded-xl shadow-lg border border-dark-border;
+    @apply hover:shadow-xl transition-shadow duration-300;
+  }
+
+  .input-field {
+    @apply bg-dark-bg border border-dark-border rounded-lg px-4 py-2;
+    @apply text-white placeholder-gray-medium;
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-primary focus:border-transparent;
+    @apply transition-all duration-200;
+  }
+
+  .btn-primary {
+    @apply bg-blue-primary hover:bg-blue-accent text-white font-medium;
+    @apply px-6 py-2.5 rounded-lg;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-primary focus:ring-offset-2 focus:ring-offset-gray-dark;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-medium hover:bg-gray-light text-white font-medium;
+    @apply px-6 py-2.5 rounded-lg;
+    @apply transition-all duration-200;
+  }
+
+  /* Scrollbar personnalisée */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-dark-bg rounded-lg;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-medium rounded-lg hover:bg-gray-light;
+  }
+
+  /* Animation d'apparition */
+  .fade-in {
+    animation: fadeIn 0.5s ease-in;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    @apply bg-gray-medium animate-pulse rounded;
+  }
+
+  /* État de chargement */
+  .loading-spinner {
+    @apply inline-block w-8 h-8 border-4 border-gray-medium border-t-blue-primary rounded-full;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .bg-gradient-radial {
+    background: radial-gradient(circle at center, var(--tw-gradient-stops));
+  }
+}
+
+/* Animations personnalisées */
+.slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Amélioration de la lisibilité */
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Focus visible pour l'accessibilité */
+*:focus-visible {
+  @apply outline-2 outline-offset-2 outline-blue-primary;
+}
+
+/* Optimisation des performances */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
