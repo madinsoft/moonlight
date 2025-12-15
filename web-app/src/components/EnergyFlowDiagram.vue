@@ -1,40 +1,53 @@
 <template>
-  <div class="card p-4">
+  <div class="card p-4 relative">
     <h3 class="text-lg font-semibold text-white mb-4 text-center">Schéma des Flux Énergétiques</h3>
     <svg viewBox="0 0 400 300" class="w-full h-auto">
-      <!-- Icons -->
-      <image href="../assets/icons/solar-panel.svg" x="160" y="10" width="80" height="80" />
-      <image href="../assets/icons/house.svg" x="30" y="110" width="80" height="80" />
-      <image href="../assets/icons/battery.svg" x="290" y="110" width="80" height="80" />
-      <image href="../assets/icons/grid.svg" x="160" y="210" width="80" height="80" />
+      
+      <!-- Gauges -->
+      <foreignObject x="10" y="20" width="50" height="120">
+        <Gauge label="Solaire" :value="displayData.solar" :unit="displayData.unit" :max="displayData.maxSolar" positive-color="#3b82f6"/>
+      </foreignObject>
+      <foreignObject x="340" y="20" width="50" height="120">
+        <Gauge label="Batterie" :value="displayData.battery" :unit="displayData.unit" :max="displayData.maxBattery" is-bidirectional positive-color="#c084fc" negative-color="#8B5CF6"/>
+      </foreignObject>
+      <foreignObject x="270" y="20" width="50" height="120">
+         <Gauge label="Charge" :value="displayData.batterySoc" unit="%" :max="100" positive-color="#A78BFA" />
+      </foreignObject>
+      <foreignObject x="10" y="150" width="50" height="120">
+        <Gauge label="Quartier" :value="displayData.house" :unit="displayData.unit" :max="displayData.maxHouse" positive-color="#f59e0b"/>
+      </foreignObject>
+      <foreignObject x="10" y="250" width="50" height="120">
+        <Gauge label="Réseau" :value="displayData.grid" :unit="displayData.unit" :max="displayData.maxGrid" is-bidirectional/>
+      </foreignObject>
 
-      <!-- Center Junction -->
-      <circle cx="200" cy="150" r="5" fill="#4b5563" />
+      <!-- Icons -->
+      <image href="../assets/icons/solar-panel.svg" x="70" y="50" width="50" height="50" />
+      <image href="../assets/icons/battery.svg" x="280" y="50" width="50" height="50" />
+      <image href="../assets/icons/house.svg" x="175" y="125" width="50" height="50" />
+      <image href="../assets/icons/grid.svg" x="175" y="225" width="50" height="50" />
 
       <!-- Static Wires -->
-      <path d="M200 90 V 145" stroke="#4b5563" stroke-width="2" /> <!-- Solar to Center -->
-      <path d="M110 150 H 195" stroke="#4b5563" stroke-width="2" /> <!-- House to Center -->
-      <path d="M205 150 H 290" stroke="#4b5563" stroke-width="2" /> <!-- Center to Battery -->
-      <path d="M200 155 V 210" stroke="#4b5563" stroke-width="2" /> <!-- Center to Grid -->
-      
+      <path d="M120 75 H 180 L 180 125 H 200" stroke="#4b5563" stroke-width="2" fill="none" /> <!-- Solar to House -->
+      <path d="M120 75 H 280" stroke="#4b5563" stroke-width="2" /> <!-- Solar to Battery -->
+      <path d="M280 75 H 220 L 220 125 H 200" stroke="#4b5563" stroke-width="2" fill="none" /> <!-- Battery to House -->
+      <path d="M200 175 V 225" stroke="#4b5563" stroke-width="2" /> <!-- House to Grid -->
+
       <!-- Dynamic Flows -->
-      <!-- Solar to Center -->
-      <path v-if="flows.solarToCenter" d="M200 90 V 145" class="flow-line solar" />
-      
-      <!-- Center to House -->
-      <path v-if="flows.centerToHouse" d="M195 150 H 110" class="flow-line consumption" />
+      <template v-if="animationStore.isPlaying">
+        <!-- Solar -> House -->
+        <path v-if="flows.solarToHouse" d="M120 75 H 180 L 180 125 H 200" class="flow-line solar" />
+        <!-- Solar -> Battery -->
+        <path v-if="flows.solarToBattery" d="M120 75 H 280" class="flow-line solar" />
+        <!-- Battery -> House -->
+        <path v-if="flows.batteryToHouse" d="M280 75 H 220 L 220 125 H 200" class="flow-line battery-discharge" />
+        <!-- House -> Battery -->
+        <path v-if="flows.houseToBattery" d="M200 125 H 220 L 220 75 H 280" class="flow-line battery-charge" />
+        <!-- Grid -> House -->
+        <path v-if="flows.gridToHouse" d="M200 225 V 175" class="flow-line grid-draw" />
+        <!-- House -> Grid -->
+        <path v-if="flows.houseToGrid" d="M200 175 V 225" class="flow-line grid-inject" />
+      </template>
 
-      <!-- Center to Battery (Charging) -->
-      <path v-if="flows.centerToBattery" d="M205 150 H 290" class="flow-line battery-charge" />
-      
-      <!-- Battery to Center (Discharging) -->
-      <path v-if="flows.batteryToCenter" d="M290 150 H 205" class="flow-line battery-discharge" />
-
-      <!-- Center to Grid (Injection) -->
-      <path v-if="flows.centerToGrid" d="M200 155 V 210" class="flow-line grid-inject" />
-
-      <!-- Grid to Center (Drawing) -->
-      <path v-if="flows.gridToCenter" d="M200 210 V 155" class="flow-line grid-draw" />
     </svg>
   </div>
 </template>
@@ -42,6 +55,7 @@
 <script setup>
 import { computed } from 'vue';
 import { animationStore } from '@/services/animationStore';
+import Gauge from './Gauge.vue';
 
 const props = defineProps({
   stats: {
@@ -55,42 +69,60 @@ const props = defineProps({
 });
 
 const flows = computed(() => {
-  if (!props.stats || !props.chartData) {
+  if (!animationStore.isPlaying || animationStore.currentIndex === null) {
     return {};
   }
+  const i = animationStore.currentIndex;
+  const prod = props.chartData.production[i]?.value || 0;
+  const cons = props.chartData.consumption[i]?.value || 0;
+  const batt = props.chartData.battery[i]?.value || 0;
+  const net = props.chartData.network[i]?.value || 0;
 
-  // If animation is playing, use instantaneous values
+  // Simplified flow logic based on new connections
+  const solarToHouse = prod > 0 && cons > 0;
+  const solarToBattery = prod > 0 && batt < 0;
+  const batteryToHouse = batt > 0 && cons > 0;
+  const houseToBattery = cons < 0 && batt < 0; // Less common, but possible
+  const gridToHouse = net < 0;
+  const houseToGrid = net > 0;
+
+  return { solarToHouse, solarToBattery, batteryToHouse, houseToBattery, gridToHouse, houseToGrid };
+});
+
+
+const displayData = computed(() => {
+  if (!props.stats) return {};
+
+  const maxValues = {
+    maxSolar: props.stats.production.max || 1,
+    maxHouse: props.stats.consumption.max || 1,
+    maxBattery: Math.max(...(props.chartData.battery || []).map(d => Math.abs(d.value))) || 1,
+    maxGrid: Math.max(...(props.chartData.network || []).map(d => Math.abs(d.value))) || 1,
+  };
+
   if (animationStore.isPlaying && animationStore.currentIndex !== null) {
     const i = animationStore.currentIndex;
-    const prod = props.chartData.production[i]?.value || 0;
-    const cons = props.chartData.consumption[i]?.value || 0;
-    const batt = props.chartData.battery[i]?.value || 0;
-    const net = props.chartData.network[i]?.value || 0;
-
     return {
-      solarToCenter: prod > 0,
-      centerToHouse: cons > 0,
-      centerToBattery: batt < 0, // Charging is negative
-      batteryToCenter: batt > 0, // Discharging is positive
-      centerToGrid: net > 0,
-      gridToCenter: net < 0,
+      ...maxValues,
+      unit: 'kW',
+      solar: props.chartData.production[i]?.value || 0,
+      house: props.chartData.consumption[i]?.value || 0,
+      battery: props.chartData.battery[i]?.value || 0,
+      grid: props.chartData.network[i]?.value || 0,
+      batterySoc: props.chartData.batterySoc[i]?.value || 0,
     };
   }
 
-  // Fallback to daily totals when not playing
-  const { production, consumption, network } = props.stats;
-  const batteryFlows = props.chartData.battery || [];
-  
-  const batteryChargeTotal = batteryFlows.filter(d => d.value < 0).reduce((sum, d) => sum + Math.abs(d.value), 0);
-  const batteryDischargeTotal = batteryFlows.filter(d => d.value > 0).reduce((sum, d) => sum + d.value, 0);
+  const batteryNetKwh = (props.chartData.battery || []).reduce((sum, d) => sum + d.value, 0) * 0.25;
 
   return {
-    solarToCenter: production.total > 0,
-    centerToHouse: consumption.total > 0,
-    centerToBattery: batteryChargeTotal > batteryDischargeTotal,
-    batteryToCenter: batteryDischargeTotal > batteryChargeTotal,
-    centerToGrid: network.balance > 0,
-    gridToCenter: network.balance < 0,
+    ...maxValues,
+    unit: 'kW Avg',
+    solar: props.stats.production.total / 24,
+    house: props.stats.consumption.total / 24,
+    battery: batteryNetKwh / 24,
+    grid: props.stats.network.balance / 24,
+    batterySoc: 50,
   };
 });
 </script>

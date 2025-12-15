@@ -20,3 +20,6 @@ Quand la liste est bien défini, générer les fichiers et indiquer leur emplace
 
 
 
+
+
+$env:GEMINI_API_KEY="AIzaSyDTORezN0FISBQ28VfqqoZrjDNkpDVrw_0"

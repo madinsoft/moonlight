@@ -27,21 +27,29 @@
             </div>
           </div>
 
-          <!-- Battery Slider -->
-          <div class="flex items-center space-x-4">
-            <svg class="w-6 h-6 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h16"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 5v14M18 5v14"></path></svg>
-            <div class="w-48 text-sm">
-              <div class="flex justify-between text-gray-light">
-                <span>Batterie</span>
-                <span class="font-bold text-white">{{ batteryCapacityKwh }} kWh</span>
+          <!-- Player and Battery Controls -->
+          <div class="flex items-center space-x-6">
+            <ChartPlayerControls 
+              v-if="chartData.production.length"
+              :time-labels="chartData.production.map(d => d.time)"
+              class="hidden md:flex"
+            />
+            <!-- Battery Slider -->
+            <div class="flex items-center space-x-4">
+              <svg class="w-6 h-6 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h16"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 5v14M18 5v14"></path></svg>
+              <div class="w-48 text-sm">
+                <div class="flex justify-between text-gray-light">
+                  <span>Batterie</span>
+                  <span class="font-bold text-white">{{ batteryCapacityKwh }} kWh</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="50" 
+                  max="1500" 
+                  step="50"
+                  v-model.number="batteryCapacityKwh"
+                  class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer range-sm">
               </div>
-              <input 
-                type="range" 
-                min="50" 
-                max="1500" 
-                step="50"
-                v-model.number="batteryCapacityKwh"
-                class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer range-sm">
             </div>
           </div>
         </div>
@@ -86,12 +94,6 @@
         <StatisticsPanel 
           v-if="dailyStats"
           :stats="dailyStats"
-        />
-
-        <!-- Animation Controls -->
-        <ChartPlayerControls 
-          v-if="chartData.production.length"
-          :time-labels="chartData.production.map(d => d.time)"
         />
 
         <!-- Charts -->

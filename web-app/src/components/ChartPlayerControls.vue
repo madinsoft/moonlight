@@ -1,13 +1,13 @@
 <template>
-  <div class="card p-4 flex items-center justify-center space-x-6">
+  <div class="flex items-center justify-center space-x-4">
     <button @click="handlePlay" :disabled="animationStore.isPlaying" class="btn-icon" aria-label="Play Animation">
-      <img src="../assets/icons/play.svg" class="w-8 h-8" alt="Play"/>
+      <img src="../assets/icons/play.svg" class="w-6 h-6" alt="Play"/>
     </button>
     <button @click="handleStop" :disabled="!animationStore.isPlaying" class="btn-icon" aria-label="Stop Animation">
-      <img src="../assets/icons/stop.svg" class="w-8 h-8" alt="Stop"/>
+      <img src="../assets/icons/stop.svg" class="w-6 h-6" alt="Stop"/>
     </button>
-    <div v-if="animationStore.currentIndex !== null" class="text-lg text-white font-mono">
-      Heure: {{ currentTime }}
+    <div v-if="animationStore.currentIndex !== null" class="text-md text-white font-mono w-24">
+      {{ currentTime }}
     </div>
   </div>
 </template>
