@@ -1,0 +1,2224 @@
+================================================================================
+CONCATENATION DES FICHIERS DU PROJET
+Dossier racine: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src
+================================================================================
+
+
+================================================================================
+FICHIER: App.vue
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\App.vue
+================================================================================
+
+<template>
+  <div class="min-h-screen bg-dark-bg pb-12">
+    <!-- Header -->
+    <header class="bg-dark-card border-b border-dark-border sticky top-0 z-50 backdrop-blur-sm bg-opacity-95">
+      <div class="container mx-auto px-4 py-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-primary to-blue-secondary rounded-lg flex items-center justify-center">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold text-white">Dashboard Solaire</h1>
+              <p class="text-sm text-gray-light">Quartier Résidentiel - Sud de la France</p>
+            </div>
+          </div>
+          
+          <div v-if="metadata" class="hidden md:flex items-center space-x-6 text-sm">
+            <div class="text-center">
+              <div class="text-gray-light">Production moy.</div>
+              <div class="text-blue-accent font-semibold">{{ metadata.avg_daily_production_kwh?.toFixed(0) }} kWh/j</div>
+            </div>
+            <div class="text-center">
+              <div class="text-gray-light">Consommation moy.</div>
+              <div class="text-yellow-primary font-semibold">{{ metadata.avg_daily_consumption_kwh?.toFixed(0) }} kWh/j</div>
+            </div>
+          </div>
+
+          <!-- Player and Battery Controls -->
+          <div class="flex items-center space-x-6">
+            <ChartPlayerControls 
+              v-if="chartData.production.length"
+              :time-labels="chartData.production.map(d => d.time)"
+              class="hidden md:flex"
+            />
+            <!-- Battery Slider -->
+            <div class="flex items-center space-x-4">
+              <svg class="w-6 h-6 text-purple-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h16"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 5v14M18 5v14"></path></svg>
+              <div class="w-48 text-sm">
+                <div class="flex justify-between text-gray-light">
+                  <span>Batterie</span>
+                  <span class="font-bold text-white">{{ batteryCapacityKwh }} kWh</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="50" 
+                  max="1500" 
+                  step="50"
+                  v-model.number="batteryCapacityKwh"
+                  class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer range-sm">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+      <!-- Loading State -->
+      <div v-if="loading" class="flex items-center justify-center min-h-[400px]">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-primary mx-auto mb-4"></div>
+          <p class="text-gray-light">Chargement des données...</p>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="error" class="card p-8 text-center">
+        <svg class="w-16 h-16 text-red-primary mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h2 class="text-xl font-semibold text-white mb-2">Erreur de chargement</h2>
+        <p class="text-gray-light mb-4">{{ error }}</p>
+        <button @click="loadData" class="btn-primary">
+          Réessayer
+        </button>
+      </div>
+
+      <!-- Data Display -->
+      <div v-else class="space-y-6">
+        <!-- Controls -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <DatePicker 
+            v-model="selectedDate"
+            :available-dates="availableDates"
+            @update:modelValue="onDateChange"
+            class="lg:col-span-1"
+          />
+        </div>
+
+        <!-- Statistics Panel -->
+        <StatisticsPanel 
+          v-if="dailyStats"
+          :stats="dailyStats"
+        />
+
+        <!-- Charts -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          <!-- Production Chart -->
+          <GraphCard 
+            title="Production Solaire"
+            icon="sun"
+            color="blue"
+            :subtitle="` ${dailyStats?.production.total.toFixed(1)} kWh produits`"
+          >
+            <ChartProduction :data="chartData.production" />
+          </GraphCard>
+
+          <!-- Consumption Chart -->
+          <GraphCard 
+            title="Consommation du Quartier"
+            icon="home"
+            color="yellow"
+            :subtitle="` ${dailyStats?.consumption.total.toFixed(1)} kWh consommés`"
+          >
+            <ChartConsumption :data="chartData.consumption" />
+          </GraphCard>
+
+          <!-- Network Chart -->
+          <GraphCard 
+            title="Flux Energétiques (Réseau & Batterie)"
+            icon="activity"
+            :color="dailyStats?.network.balance >= 0 ? 'green' : 'red'"
+            :subtitle="getNetworkSubtitle()"
+          >
+            <ChartNetwork :networkData="chartData.network" :batteryData="chartData.battery" />
+          </GraphCard>
+
+          <!-- Battery SoC Chart -->
+          <GraphCard 
+            title="État de Charge de la Batterie"
+            icon="battery"
+            color="purple"
+            subtitle="Évolution de l'énergie stockée"
+          >
+            <ChartBatterySoc :data="chartData.batterySoc" />
+          </GraphCard>
+        </div>
+
+        <!-- Energy Flow Diagram -->
+        <EnergyFlowDiagram 
+          v-if="dailyStats && chartData"
+          :stats="dailyStats"
+          :chartData="chartData"
+        />
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-12 text-center text-gray-medium text-sm">
+      <p>Dashboard Solaire - Visualisation de production et consommation énergétique</p>
+      <p class="mt-1">Données {{ metadata?.year }} - Sud de la France</p>
+    </footer>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue'
+import DatePicker from './components/DatePicker.vue'
+import StatisticsPanel from './components/StatisticsPanel.vue'
+import GraphCard from './components/GraphCard.vue'
+import ChartProduction from './components/ChartProduction.vue'
+import ChartConsumption from './components/ChartConsumption.vue'
+import ChartNetwork from './components/ChartNetwork.vue'
+import ChartBatterySoc from './components/ChartBatterySoc.vue'
+import EnergyFlowDiagram from './components/EnergyFlowDiagram.vue'
+import ChartPlayerControls from './components/ChartPlayerControls.vue'
+import { loadCSVData } from './services/dataLoader'
+import { processDataForDate, calculateDailyStats } from './services/dataProcessor'
+
+// State
+const loading = ref(true)
+const error = ref(null)
+const selectedDate = ref(null)
+const productionData = ref([])
+const consumptionData = ref([])
+const metadata = ref(null)
+const batteryCapacityKwh = ref(500)
+
+const chartData = ref({ production: [], consumption: [], network: [], battery: [], batterySoc: [] });
+const dailyStats = ref(null);
+
+
+// Computed
+const availableDates = computed(() => {
+  if (!productionData.value.length) return []
+  
+  const dates = new Set()
+  productionData.value.forEach(row => {
+    // console.log(row)
+    if (row && row.timestamp && typeof row.timestamp === 'string') {
+      const date = row.timestamp.split(' ')[0]
+      if (date) {
+        dates.add(date)
+      }
+    }
+  })
+  
+  return Array.from(dates).sort()
+})
+
+// Methods
+const processAllData = () => {
+  if (!selectedDate.value) return;
+
+  const processed = processDataForDate(
+    productionData.value,
+    consumptionData.value,
+    selectedDate.value,
+    batteryCapacityKwh.value
+  );
+  chartData.value = processed;
+
+  dailyStats.value = calculateDailyStats(
+    processed.production,
+    processed.consumption,
+    processed.network,
+  );
+};
+
+const loadData = async () => {
+  loading.value = true
+  error.value = null
+  
+  try {
+    const data = await loadCSVData()
+    productionData.value = data.production
+    consumptionData.value = data.consumption
+    metadata.value = data.metadata
+    
+    // Sélectionner une date par défaut (21 juin - solstice d'été)
+    if (availableDates.value.length > 0) {
+      const summerDate = availableDates.value.find(d => d.includes('-06-21'))
+      selectedDate.value = summerDate || availableDates.value[Math.floor(availableDates.value.length / 2)]
+    }
+  } catch (e) {
+    error.value = e.message
+    console.error('Erreur chargement:', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+const onDateChange = (newDate) => {
+  selectedDate.value = newDate
+}
+
+const getNetworkSubtitle = () => {
+  if (!dailyStats.value) return ''
+  
+  const balance = dailyStats.value.network.balance
+  if (balance > 0) {
+    return ` ${balance.toFixed(1)} kWh injectés sur le réseau`
+  } else {
+    return ` ${Math.abs(balance).toFixed(1)} kWh soutirés du réseau`
+  }
+}
+
+// Watchers
+watch(selectedDate, (newDate) => {
+  if (newDate) {
+    processAllData();
+  }
+});
+
+watch(batteryCapacityKwh, (newCapacity) => {
+  if (selectedDate.value) {
+    processAllData();
+  }
+});
+
+
+// Lifecycle
+onMounted(async () => {
+  await loadData();
+  if (selectedDate.value) {
+    processAllData();
+  }
+})
+</script>
+
+================================================================================
+FICHIER: assets\styles\main.css
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\assets\styles\main.css
+================================================================================
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-dark-border;
+  }
+  
+  body {
+    @apply text-gray-100 antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-dark-card rounded-xl border border-dark-border shadow-lg;
+  }
+  
+  .btn-primary {
+    @apply bg-blue-primary hover:bg-blue-secondary text-white font-medium px-6 py-2.5 rounded-lg transition-colors duration-200;
+  }
+  
+  .input-field {
+    @apply bg-dark-card border border-dark-border text-gray-100 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-primary;
+  }
+}
+
+/* Scrollbar personnalisée */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-dark-bg;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-dark rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-medium;
+}
+
+================================================================================
+FICHIER: assets\styles\theme.css
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\assets\styles\theme.css
+================================================================================
+
+:root {
+  /* Colors */
+  --color-bg-dark: #0f1419;
+  --color-card-dark: #1a1f2e;
+  --color-border-dark: #2d3748;
+  
+  --color-blue-primary: #3b82f6;
+  --color-blue-secondary: #1e40af;
+  --color-blue-accent: #60a5fa;
+  
+  --color-green-primary: #10b981;
+  --color-red-primary: #ef4444;
+  --color-yellow-primary: #f59e0b;
+  
+  /* Spacing */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+  
+  /* Border Radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+================================================================================
+FICHIER: components\ChartBatterySoc.vue
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\components\ChartBatterySoc.vue
+================================================================================
+
+<template>
+  <div class="relative h-80">
+    <Line :chart-id="'chart-battery-soc'" ref="chartRef" :data="chartData" :options="chartOptions" />
+  </div>
+</template>
+
+<script setup>
+import { computed, ref, watch } from 'vue'
+import { Line } from 'vue-chartjs'
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js'
+import { getChartConfig } from '@/services/chartConfig'
+import { timeIndicatorPlugin } from '@/services/timeIndicatorPlugin'
+import { animationStore } from '@/services/animationStore'
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler, timeIndicatorPlugin)
+
+const props = defineProps({
+  data: {
+    type: Array,
+    default: () => []
+  }
+})
+
+const chartRef = ref(null);
+
+const chartData = computed(() => ({
+  labels: props.data.map(d => d.time),
+  datasets: [
+    {
+      label: 'État de charge (%)',
+      data: props.data.map(d => d.value),
+      borderColor: '#A78BFA', // A lighter purple
+      backgroundColor: 'rgba(167, 139, 250, 0.2)',
+      borderWidth: 2,
+      pointRadius: 0,
+      tension: 0.3,
+      fill: true,
+    }
+  ]
+}))
+
+const chartOptions = computed(() => {
+    const config = getChartConfig('batterySoc'); // Using a new config type
+    
+    config.scales.y.min = 0;
+    config.scales.y.max = 100;
+    config.scales.y.ticks.callback = function(value) {
+        return value.toFixed(0) + ' %';
+    };
+
+    config.plugins.tooltip.callbacks.label = function(context) {
+        return `Charge: ${context.parsed.y.toFixed(1)} %`;
+    };
+
+    return config;
+})
+
+watch(() => animationStore.currentIndex, () => {
+  if (chartRef.value) {
+    chartRef.value.chart.update('none');
+  }
+});
+</script>
+
+================================================================================
+FICHIER: components\ChartConsumption.vue
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\components\ChartConsumption.vue
+================================================================================
+
+<template>
+  <div class="relative h-80">
+    <Line :chart-id="'chart-consumption'" ref="chartRef" :data="chartData" :options="chartOptions" />
+  </div>
+</template>
+
+<script setup>
+import { computed, ref, watch } from 'vue'
+import { Line } from 'vue-chartjs'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Filler
+} from 'chart.js'
+import { getChartConfig } from '../services/chartConfig'
+import { timeIndicatorPlugin } from '@/services/timeIndicatorPlugin'
+import { animationStore } from '@/services/animationStore'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Filler,
+  timeIndicatorPlugin
+)
+
+const props = defineProps({
+  data: {
+    type: Array,
+    required: true,
+    default: () => []
+  }
+})
+
+const chartRef = ref(null);
+
+const chartData = computed(() => ({
+  labels: props.data.map(d => d.time),
+  datasets: [
+    {
+      label: 'Consommation (kW)',
+      data: props.data.map(d => d.value),
+      borderColor: '#f59e0b',
+      backgroundColor: 'rgba(245, 158, 11, 0.1)',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.4,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+    }
+  ]
+}))
+
+const chartOptions = computed(() => getChartConfig('consumption'))
+
+watch(() => animationStore.currentIndex, () => {
+  if (chartRef.value) {
+    chartRef.value.chart.update('none');
+  }
+});
+</script>
+
+================================================================================
+FICHIER: components\ChartNetwork.vue
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\components\ChartNetwork.vue
+================================================================================
+
+<template>
+  <div class="relative h-80">
+    <Line :chart-id="'chart-network'" ref="chartRef" :data="chartData" :options="chartOptions" />
+  </div>
+</template>
+
+<script setup>
+import { computed, ref, watch } from 'vue'
+import { Line } from 'vue-chartjs'
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js'
+import { getChartConfig } from '@/services/chartConfig'
+import { timeIndicatorPlugin } from '@/services/timeIndicatorPlugin'
+import { animationStore } from '@/services/animationStore'
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler, timeIndicatorPlugin)
+
+const props = defineProps({
+  networkData: {
+    type: Array,
+    default: () => []
+  },
+  batteryData: {
+    type: Array,
+    default: () => []
+  }
+})
+
+const chartRef = ref(null);
+
+const chartData = computed(() => {
+  const labels = props.networkData.map(d => d.time);
+  
+  return {
+    labels: labels,
+    datasets: [
+      {
+        label: 'Batterie (kW)',
+        data: props.batteryData.map(d => d.value),
+        borderColor: '#8B5CF6', // Purple
+        backgroundColor: 'rgba(139, 92, 246, 0.2)',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: true,
+      },
+      {
+        label: 'Réseau (kW)',
+        data: props.networkData.map(d => d.value),
+        borderColor: '#4ade80',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.3,
+        segment: {
+            borderColor: ctx => (ctx.p1.raw >= 0 ? '#10B981' : '#EF4444'),
+        }
+      }
+    ]
+  }
+})
+
+const chartOptions = computed(() => {
+    const config = getChartConfig('network');
+    
+    // Customization for this specific chart
+    config.plugins.legend = {
+        display: true,
+        position: 'top',
+        labels: {
+            color: '#9ca3af',
+            font: { size: 12 },
+            boxWidth: 15,
+            padding: 20
+        }
+    };
+
+    config.scales.y.title = {
+      display: true,
+      text: 'Puissance (kW)',
+      color: '#9ca3af',
+      font: {
+        size: 12,
+        weight: 'bold'
+      }
+    }
+
+    // Modify tooltip to handle multiple datasets
+    config.plugins.tooltip.displayColors = true;
+    config.plugins.tooltip.callbacks.label = function(context) {
+      const label = context.dataset.label || '';
+      const value = context.parsed.y;
+      let valueText = '';
+      if (label.includes('Réseau')) {
+        valueText = (value >= 0 ? 'Injection: +' : 'Soutirage: ') + Math.abs(value).toFixed(2) + ' kW';
+      } else if (label.includes('Batterie')) {
+        valueText = (value <= 0 ? 'Charge: ' : 'Décharge: ') + Math.abs(value).toFixed(2) + ' kW';
+      } else {
+        valueText = value.toFixed(2) + ' kW';
+      }
+      return `${label}: ${valueText}`;
+    };
+
+
+    return config;
+})
+
+watch(() => animationStore.currentIndex, () => {
+  if (chartRef.value) {
+    chartRef.value.chart.update('none');
+  }
+});
+</script>
+
+================================================================================
+FICHIER: components\ChartPlayerControls.vue
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\components\ChartPlayerControls.vue
+================================================================================
+
+<template>
+  <div class="flex items-center justify-center space-x-4">
+    <button @click="handlePlay" :disabled="animationStore.isPlaying" class="btn-icon" aria-label="Play Animation">
+      <img src="../assets/icons/play.svg" class="w-6 h-6" alt="Play"/>
+    </button>
+    <button @click="handleStop" :disabled="!animationStore.isPlaying" class="btn-icon" aria-label="Stop Animation">
+      <img src="../assets/icons/stop.svg" class="w-6 h-6" alt="Stop"/>
+    </button>
+    <div v-if="animationStore.currentIndex !== null" class="text-md text-white font-mono w-24">
+      {{ currentTime }}
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue';
+import { animationStore } from '@/services/animationStore';
+
+const props = defineProps({
+  timeLabels: {
+    type: Array,
+    required: true
+  }
+});
+
+const currentTime = computed(() => {
+  if (animationStore.currentIndex !== null && props.timeLabels[animationStore.currentIndex]) {
+    return props.timeLabels[animationStore.currentIndex];
+  }
+  return '00:00';
+});
+
+const handlePlay = () => {
+  animationStore.play(props.timeLabels.length);
+};
+
+const handleStop = () => {
+  animationStore.stop();
+};
+</script>
+
+<style scoped>
+.btn-icon {
+  @apply p-2 bg-dark-border rounded-full transition-colors duration-200;
+}
+.btn-icon:not(:disabled) {
+  @apply hover:bg-blue-primary;
+}
+.btn-icon:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+</style>
+
+================================================================================
+FICHIER: components\ChartProduction.vue
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\components\ChartProduction.vue
+================================================================================
+
+<template>
+  <div class="relative h-80">
+    <Line :chart-id="'chart-production'" ref="chartRef" :data="chartData" :options="chartOptions" />
+  </div>
+</template>
+
+<script setup>
+import { computed, watch, ref } from 'vue'
+import { Line } from 'vue-chartjs'
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js'
+import { getChartConfig } from '@/services/chartConfig'
+import { timeIndicatorPlugin } from '@/services/timeIndicatorPlugin'
+import { animationStore } from '@/services/animationStore'
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler, timeIndicatorPlugin)
+
+const props = defineProps({
+  data: {
+    type: Array,
+    default: () => []
+  }
+})
+
+const chartRef = ref(null);
+
+const chartData = computed(() => ({
+  labels: props.data.map(d => d.time),
+  datasets: [{
+    label: 'Production (kW)',
+    data: props.data.map(d => d.value),
+    borderColor: '#60a5fa',
+    backgroundColor: 'rgba(96, 165, 250, 0.1)',
+    fill: true,
+    tension: 0.4,
+    pointRadius: 0,
+    pointHoverRadius: 5,
+    borderWidth: 2
+  }]
+}))
+
+const chartOptions = computed(() => getChartConfig('production'))
+
+watch(() => animationStore.currentIndex, () => {
+  if (chartRef.value) {
+    chartRef.value.chart.update('none'); // 'none' prevents animation, giving instant feedback
+  }
+});
+</script>
+
+================================================================================
+FICHIER: components\DatePicker.vue
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\components\DatePicker.vue
+================================================================================
+
+<template>
+  <div class="date-picker-container">
+    <div class="date-picker-wrapper">
+      <div class="date-picker-icon">
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+          />
+        </svg>
+      </div>
+      <input
+        type="date"
+        :value="modelValue"
+        @input="$emit('update:modelValue', $event.target.value)"
+        :min="minDate"
+        :max="maxDate"
+        class="date-picker-input"
+      />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+
+const props = defineProps({
+  modelValue: {
+    type: String,
+    required: true
+  },
+  minDate: {
+    type: String,
+    default: null
+  },
+  maxDate: {
+    type: String,
+    default: null
+  }
+})
+
+defineEmits(['update:modelValue'])
+</script>
+
+<style scoped>
+.date-picker-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.date-picker-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  transition: all 0.2s;
+}
+
+.date-picker-wrapper:hover {
+  border-color: #475569;
+  background-color: #334155;
+}
+
+.date-picker-wrapper:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.date-picker-icon {
+  color: #94a3b8;
+  margin-right: 0.75rem;
+  pointer-events: none;
+}
+
+.date-picker-input {
+  background: transparent;
+  border: none;
+  color: #f1f5f9;
+  font-size: 0.875rem;
+  font-weight: 500;
+  outline: none;
+  min-width: 150px;
+  cursor: pointer;
+}
+
+.date-picker-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(1);
+  opacity: 0.6;
+}
+
+.date-picker-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Style pour le calendrier sur les navigateurs WebKit */
+.date-picker-input::-webkit-datetime-edit {
+  padding: 0;
+}
+
+.date-picker-input::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+
+.date-picker-input::-webkit-datetime-edit-text {
+  color: #64748b;
+  padding: 0 0.25rem;
+}
+
+.date-picker-input::-webkit-datetime-edit-month-field,
+.date-picker-input::-webkit-datetime-edit-day-field,
+.date-picker-input::-webkit-datetime-edit-year-field {
+  color: #f1f5f9;
+}
+
+.date-picker-input::-webkit-datetime-edit-month-field:hover,
+.date-picker-input::-webkit-datetime-edit-day-field:hover,
+.date-picker-input::-webkit-datetime-edit-year-field:hover {
+  background-color: rgba(59, 130, 246, 0.2);
+  border-radius: 0.25rem;
+}
+
+/* Support des thèmes sombres natifs */
+@media (prefers-color-scheme: dark) {
+  .date-picker-input::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+}
+</style>
+
+================================================================================
+FICHIER: components\EnergyFlowDiagram.vue
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\components\EnergyFlowDiagram.vue
+================================================================================
+
+<template>
+  <div class="card p-4 relative">
+    <h3 class="text-lg font-semibold text-white mb-4 text-center">Schéma des Flux Énergétiques</h3>
+    <svg viewBox="0 0 500 350" class="w-full h-auto">
+      
+      <!-- Gauges (réduites et à gauche) -->
+      <foreignObject x="10" y="30" width="40" height="80">
+        <Gauge label="Solaire" :value="displayData.solar" :unit="displayData.unit" :max="displayData.maxSolar" positive-color="#3b82f6"/>
+      </foreignObject>
+      
+      <foreignObject x="10" y="130" width="40" height="80">
+        <Gauge label="Batterie" :value="displayData.battery" :unit="displayData.unit" :max="displayData.maxBattery" is-bidirectional positive-color="#c084fc" negative-color="#8B5CF6"/>
+      </foreignObject>
+      
+      <foreignObject x="10" y="230" width="40" height="80">
+         <Gauge label="Charge" :value="displayData.batterySoc" unit="%" :max="100" positive-color="#A78BFA" />
+      </foreignObject>
+      
+      <foreignObject x="210" y="130" width="40" height="80">
+        <Gauge label="Quartier" :value="displayData.house" :unit="displayData.unit" :max="displayData.maxHouse" positive-color="#f59e0b"/>
+      </foreignObject>
+      
+      <foreignObject x="410" y="130" width="40" height="80">
+        <Gauge label="Réseau" :value="displayData.grid" :unit="displayData.unit" :max="displayData.maxGrid" is-bidirectional/>
+      </foreignObject>
+
+      <!-- Icons (déplacés à droite des jauges) -->
+      <image href="../assets/icons/solar-panel.svg" x="70" y="40" width="60" height="60" />
+      <image href="../assets/icons/battery.svg" x="70" y="140" width="60" height="60" />
+      <image href="../assets/icons/house.svg" x="270" y="140" width="60" height="60" />
+      <image href="../assets/icons/grid.svg" x="470" y="140" width="60" height="60" />
+
+      <!-- Static Wires (sens inversé: droite vers gauche) -->
+      <!-- Solaire -> Quartier -->
+      <path d="M 270 170 H 200 L 200 70 H 130" stroke="#4b5563" stroke-width="2" fill="none" />
+      
+      <!-- Solaire -> Batterie -->
+      <path d="M 130 70 V 170" stroke="#4b5563" stroke-width="2" />
+      
+      <!-- Batterie -> Quartier -->
+      <path d="M 130 170 H 270" stroke="#4b5563" stroke-width="2" fill="none" />
+      
+      <!-- Quartier -> Réseau -->
+      <path d="M 330 170 H 470" stroke="#4b5563" stroke-width="2" />
+
+      <!-- Dynamic Flows (sens inversé) -->
+      <template v-if="animationStore.isPlaying">
+        <!-- Solaire -> Quartier -->
+        <path v-if="flows.solarToHouse" d="M 270 170 H 200 L 200 70 H 130" class="flow-line solar-to-house" />
+        
+        <!-- Solaire -> Batterie (charge) -->
+        <path v-if="flows.solarToBattery" d="M 130 70 V 170" class="flow-line solar-to-battery" />
+        
+        <!-- Batterie -> Quartier (décharge) -->
+        <path v-if="flows.batteryToHouse" d="M 130 170 H 270" class="flow-line battery-discharge" />
+        
+        <!-- Quartier -> Batterie (rare) -->
+        <path v-if="flows.houseToBattery" d="M 270 170 H 130" class="flow-line battery-charge" />
+        
+        <!-- Réseau -> Quartier (soutirage) -->
+        <path v-if="flows.gridToHouse" d="M 470 170 H 330" class="flow-line grid-draw" />
+        
+        <!-- Quartier -> Réseau (injection) -->
+        <path v-if="flows.houseToGrid" d="M 330 170 H 470" class="flow-line grid-inject" />
+      </template>
+
+    </svg>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue';
+import { animationStore } from '@/services/animationStore';
+import Gauge from './Gauge.vue';
+
+const props = defineProps({
+  stats: {
+    type: Object,
+    required: true
+  },
+  chartData: {
+    type: Object,
+    required: true
+  }
+});
+
+const flows = computed(() => {
+  if (!animationStore.isPlaying || animationStore.currentIndex === null) {
+    return {};
+  }
+  const i = animationStore.currentIndex;
+  const prod = props.chartData.production[i]?.value || 0;
+  const cons = props.chartData.consumption[i]?.value || 0;
+  const batt = props.chartData.battery[i]?.value || 0;
+  const net = props.chartData.network[i]?.value || 0;
+
+  // Logique des flux (sens physique: production -> consommation)
+  const solarToHouse = prod > 0 && cons > 0;
+  const solarToBattery = prod > 0 && batt < 0; // Charge batterie
+  const batteryToHouse = batt > 0 && cons > 0; // Décharge batterie
+  const houseToBattery = cons < 0 && batt < 0; // Rare: surplus va en batterie
+  const gridToHouse = net < 0; // Soutirage réseau
+  const houseToGrid = net > 0; // Injection réseau
+
+  return { solarToHouse, solarToBattery, batteryToHouse, houseToBattery, gridToHouse, houseToGrid };
+});
+
+const displayData = computed(() => {
+  if (!props.stats) return {};
+
+  const maxValues = {
+    maxSolar: props.stats.production.max || 1,
+    maxHouse: props.stats.consumption.max || 1,
+    maxBattery: Math.max(...(props.chartData.battery || []).map(d => Math.abs(d.value))) || 1,
+    maxGrid: Math.max(...(props.chartData.network || []).map(d => Math.abs(d.value))) || 1,
+  };
+
+  if (animationStore.isPlaying && animationStore.currentIndex !== null) {
+    const i = animationStore.currentIndex;
+    return {
+      ...maxValues,
+      unit: 'kW',
+      solar: props.chartData.production[i]?.value || 0,
+      house: props.chartData.consumption[i]?.value || 0,
+      battery: props.chartData.battery[i]?.value || 0,
+      grid: props.chartData.network[i]?.value || 0,
+      batterySoc: props.chartData.batterySoc[i]?.value || 0,
+    };
+  }
+
+  const batteryNetKwh = (props.chartData.battery || []).reduce((sum, d) => sum + d.value, 0) * 0.25;
+
+  return {
+    ...maxValues,
+    unit: 'kW Avg',
+    solar: props.stats.production.total / 24,
+    house: props.stats.consumption.total / 24,
+    battery: batteryNetKwh / 24,
+    grid: props.stats.network.balance / 24,
+    batterySoc: 50,
+  };
+});
+</script>
+
+<style scoped>
+.card {
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 0.75rem;
+}
+
+.flow-line {
+  fill: none;
+  stroke-width: 4;
+  stroke-dasharray: 10 5;
+  animation: flow-rtl 1.5s linear infinite;
+}
+
+/* Couleurs des flux */
+.solar-to-house { 
+  stroke: #3b82f6; 
+  filter: drop-shadow(0 0 4px #3b82f6);
+}
+
+.solar-to-battery { 
+  stroke: #8B5CF6; 
+  filter: drop-shadow(0 0 4px #8B5CF6);
+}
+
+.battery-charge { 
+  stroke: #8B5CF6; 
+  filter: drop-shadow(0 0 4px #8B5CF6);
+}
+
+.battery-discharge { 
+  stroke: #c084fc; 
+  filter: drop-shadow(0 0 4px #c084fc);
+}
+
+.grid-inject { 
+  stroke: #10b981; 
+  filter: drop-shadow(0 0 4px #10b981);
+}
+
+.grid-draw { 
+  stroke: #ef4444; 
+  filter: drop-shadow(0 0 4px #ef4444);
+}
+
+/* Animation de dro# 📄 Fichier `EnergyFlowDiagram.vue` corrigé
+
+```vue
+<template>
+  <div class="card p-4 relative">
+    <h3 class="text-lg font-semibold text-white mb-4 text-center">Schéma des Flux Énergétiques</h3>
+    <svg viewBox="0 0 500 350" class="w-full h-auto">
+      
+      <!-- Gauges (réduites et à gauche) -->
+      <foreignObject x="10" y="30" width="40" height="80">
+        <Gauge label="Solaire" :value="displayData.solar" :unit="displayData.unit" :max="displayData.maxSolar" positive-color="#3b82f6"/>
+      </foreignObject>
+      
+      <foreignObject x="10" y="130" width="40" height="80">
+        <Gauge label="Batterie" :value="displayData.battery" :unit="displayData.unit" :max="displayData.maxBattery" is-bidirectional positive-color="#c084fc" negative-color="#8B5CF6"/>
+      </foreignObject>
+      
+      <foreignObject x="10" y="230" width="40" height="80">
+         <Gauge label="Charge" :value="displayData.batterySoc" unit="%" :max="100" positive-color="#A78BFA" />
+      </foreignObject>
+      
+      <foreignObject x="210" y="130" width="40" height="80">
+        <Gauge label="Quartier" :value="displayData.house" :unit="displayData.unit" :max="displayData.maxHouse" positive-color="#f59e0b"/>
+      </foreignObject>
+      
+      <foreignObject x="410" y="130" width="40" height="80">
+        <Gauge label="Réseau" :value="displayData.grid" :unit="displayData.unit" :max="displayData.maxGrid" is-bidirectional/>
+      </foreignObject>
+
+      <!-- Icons (déplacés à droite des jauges) -->
+      <image href="../assets/icons/solar-panel.svg" x="70" y="40" width="60" height="60" />
+      <image href="../assets/icons/battery.svg" x="70" y="140" width="60" height="60" />
+      <image href="../assets/icons/house.svg" x="270" y="140" width="60" height="60" />
+      <image href="../assets/icons/grid.svg" x="470" y="140" width="60" height="60" />
+
+      <!-- Static Wires (sens inversé: droite vers gauche) -->
+      <!-- Solaire -> Quartier -->
+      <path d="M 270 170 H 200 L 200 70 H 130" stroke="#4b5563" stroke-width="2" fill="none" />
+      
+      <!-- Solaire -> Batterie -->
+      <path d="M 130 70 V 170" stroke="#4b5563" stroke-width="2" />
+      
+      <!-- Batterie -> Quartier -->
+      <path d="M 130 170 H 270" stroke="#4b5563" stroke-width="2" fill="none" />
+      
+      <!-- Quartier -> Réseau -->
+      <path d="M 330 170 H 470" stroke="#4b5563" stroke-width="2" />
+
+      <!-- Dynamic Flows (sens inversé) -->
+      <template v-if="animationStore.isPlaying">
+        <!-- Solaire -> Quartier -->
+        <path v-if="flows.solarToHouse" d="M 270 170 H 200 L 200 70 H 130" class="flow-line solar-to-house" />
+        
+        <!-- Solaire -> Batterie (charge) -->
+        <path v-if="flows.solarToBattery" d="M 130 70 V 170" class="flow-line solar-to-battery" />
+        
+        <!-- Batterie -> Quartier (décharge) -->
+        <path v-if="flows.batteryToHouse" d="M 130 170 H 270" class="flow-line battery-discharge" />
+        
+        <!-- Quartier -> Batterie (rare) -->
+        <path v-if="flows.houseToBattery" d="M 270 170 H 130" class="flow-line battery-charge" />
+        
+        <!-- Réseau -> Quartier (soutirage) -->
+        <path v-if="flows.gridToHouse" d="M 470 170 H 330" class="flow-line grid-draw" />
+        
+        <!-- Quartier -> Réseau (injection) -->
+        <path v-if="flows.houseToGrid" d="M 330 170 H 470" class="flow-line grid-inject" />
+      </template>
+
+    </svg>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue';
+import { animationStore } from '@/services/animationStore';
+import Gauge from './Gauge.vue';
+
+const props = defineProps({
+  stats: {
+    type: Object,
+    required: true
+  },
+  chartData: {
+    type: Object,
+    required: true
+  }
+});
+
+const flows = computed(() => {
+  if (!animationStore.isPlaying || animationStore.currentIndex === null) {
+    return {};
+  }
+  const i = animationStore.currentIndex;
+  const prod = props.chartData.production[i]?.value || 0;
+  const cons = props.chartData.consumption[i]?.value || 0;
+  const batt = props.chartData.battery[i]?.value || 0;
+  const net = props.chartData.network[i]?.value || 0;
+
+  // Logique des flux (sens physique: production -> consommation)
+  const solarToHouse = prod > 0 && cons > 0;
+  const solarToBattery = prod > 0 && batt < 0; // Charge batterie
+  const batteryToHouse = batt > 0 && cons > 0; // Décharge batterie
+  const houseToBattery = cons < 0 && batt < 0; // Rare: surplus va en batterie
+  const gridToHouse = net < 0; // Soutirage réseau
+  const houseToGrid = net > 0; // Injection réseau
+
+  return { solarToHouse, solarToBattery, batteryToHouse, houseToBattery, gridToHouse, houseToGrid };
+});
+
+const displayData = computed(() => {
+  if (!props.stats) return {};
+
+  const maxValues = {
+    maxSolar: props.stats.production.max || 1,
+    maxHouse: props.stats.consumption.max || 1,
+    maxBattery: Math.max(...(props.chartData.battery || []).map(d => Math.abs(d.value))) || 1,
+    maxGrid: Math.max(...(props.chartData.network || []).map(d => Math.abs(d.value))) || 1,
+  };
+
+  if (animationStore.isPlaying && animationStore.currentIndex !== null) {
+    const i = animationStore.currentIndex;
+    return {
+      ...maxValues,
+      unit: 'kW',
+      solar: props.chartData.production[i]?.value || 0,
+      house: props.chartData.consumption[i]?.value || 0,
+      battery: props.chartData.battery[i]?.value || 0,
+      grid: props.chartData.network[i]?.value || 0,
+      batterySoc: props.chartData.batterySoc[i]?.value || 0,
+    };
+  }
+
+  const batteryNetKwh = (props.chartData.battery || []).reduce((sum, d) => sum + d.value, 0) * 0.25;
+
+  return {
+    ...maxValues,
+    unit: 'kW Avg',
+    solar: props.stats.production.total / 24,
+    house: props.stats.consumption.total / 24,
+    battery: batteryNetKwh / 24,
+    grid: props.stats.network.balance / 24,
+    batterySoc: 50,
+  };
+});
+</script>
+
+<style scoped>
+.card {
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 0.75rem;
+}
+
+.flow-line {
+  fill: none;
+  stroke-width: 4;
+  stroke-dasharray: 10 5;
+  animation: flow-rtl 1.5s linear infinite;
+}
+
+/* Couleurs des flux */
+.solar-to-house { 
+  stroke: #3b82f6; 
+  filter: drop-shadow(0 0 4px #3b82f6);
+}
+
+.solar-to-battery { 
+  stroke: #8B5CF6; 
+  filter: drop-shadow(0 0 4px #8B5CF6);
+}
+
+.battery-charge { 
+  stroke: #8B5CF6; 
+  filter: drop-shadow(0 0 4px #8B5CF6);
+}
+
+.battery-discharge { 
+  stroke: #c084fc; 
+  filter: drop-shadow(0 0 4px #c084fc);
+}
+
+.grid-inject { 
+  stroke: #10b981; 
+  filter: drop-shadow(0 0 4px #10b981);
+}
+
+.grid-draw { 
+  stroke: #ef4444; 
+  filter: drop-shadow(0 0 4px #ef4444);
+}
+
+/* Animation de droite à gauche (sens physique inversé) */
+@keyframes flow-rtl {
+  from {
+    stroke-dashoffset: 15;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  foreignObject {
+    width: 35px !important;
+    height: 70px !important;
+  }
+  
+  image {
+    width: 50px !important;
+    height: 50px !important;
+  }
+}
+</style>
+
+================================================================================
+FICHIER: components\Gauge.vue
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\components\Gauge.vue
+================================================================================
+
+<template>
+  <div class="flex flex-col items-center w-12 text-xs">
+    <!-- Value Display -->
+    <div class="font-mono font-bold text-white order-1 text-sm">{{ value.toFixed(1) }}</div>
+    <div class="text-gray-400 order-2 text-[10px]">{{ unit }}</div>
+
+    <!-- Vertical Bar -->
+    <div class="w-3 h-[50px] bg-dark-border rounded-full my-1 flex order-3" :class="isBidirectional ? 'flex-col' : 'flex-col-reverse'">
+      <!-- Positive Bar -->
+      <div class="w-full rounded-full" 
+           :style="{ height: positiveHeight, backgroundColor: barColor }">
+      </div>
+      <!-- Negative Bar (for bidirectional) -->
+      <div v-if="isBidirectional" 
+           class="w-full rounded-full"
+           :style="{ height: negativeHeight, backgroundColor: negativeColor }">
+      </div>
+    </div>
+
+    <!-- Label -->
+    <div class="font-semibold text-gray-300 order-4 text-center text-[11px]">{{ label }}</div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue';
+
+const props = defineProps({
+  label: { type: String, required: true },
+  value: { type: Number, default: 0 },
+  unit: { type: String, default: 'kW' },
+  max: { type: Number, default: 100 },
+  isBidirectional: { type: Boolean, default: false },
+  positiveColor: { type: String, default: '#10b981' },
+  negativeColor: { type: String, default: '#ef4444' }
+});
+
+const positiveHeight = computed(() => {
+  if (props.value >= 0) {
+    const percentage = Math.min(100, (props.value / Math.max(1, props.max)) * 100);
+    return props.isBidirectional ? `${percentage / 2}%` : `${percentage}%`;
+  }
+  return props.isBidirectional ? '50%' : '0%';
+});
+
+const negativeHeight = computed(() => {
+  if (props.isBidirectional && props.value < 0) {
+    const percentage = Math.min(100, (Math.abs(props.value) / Math.max(1, props.max)) * 100);
+    return `${percentage / 2}%`;
+  }
+  return '0%';
+});
+
+const barColor = computed(() => {
+  if (props.isBidirectional) {
+    return props.positiveColor; // In bidirectional, top is always positive color
+  }
+  return props.value >= 0 ? props.positiveColor : props.negativeColor;
+});
+</script>
+
+================================================================================
+FICHIER: components\GraphCard.vue
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\components\GraphCard.vue
+================================================================================
+
+<template>
+  <div class="card overflow-hidden">
+    <div class="p-6 pb-4 border-b border-dark-border">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div :class="['p-2.5 rounded-lg', `bg- $ {color}-primary bg-opacity-20`]">
+            <component :is="iconComponent" :class="['w-6 h-6', `text- $ {color}-${color === 'yellow' ? 'primary' : 'accent'}`]" />
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-white">{{ title }}</h3>
+            <p v-if="subtitle" class="text-sm text-gray-light mt-0.5">{{ subtitle }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="p-6">
+      <slot />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+
+const props = defineProps({
+  title: String,
+  subtitle: String,
+  icon: String,
+  color: {
+    type: String,
+    default: 'blue'
+  }
+})
+
+const iconComponent = computed(() => {
+  const icons = {
+    sun: {
+      template: `
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      `
+    },
+    home: {
+      template: `
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      `
+    },
+    activity: {
+      template: `
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      `
+    }
+  }
+  
+  return icons[props.icon] || icons.sun
+})
+</script>
+
+================================================================================
+FICHIER: components\StatisticsPanel.vue
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\components\StatisticsPanel.vue
+================================================================================
+
+<template>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Production -->
+    <div class="card p-5">
+      <div class="flex items-start justify-between mb-3">
+        <div class="p-2 bg-blue-primary bg-opacity-20 rounded-lg">
+          <svg class="w-6 h-6 text-blue-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        </div>
+        <span class="text-xs text-gray-light">kWh</span>
+      </div>
+      <div class="mb-1">
+        <div class="text-2xl font-bold text-white">{{ stats.production.total.toFixed(1) }}</div>
+        <div class="text-sm text-gray-light">Production totale</div>
+      </div>
+      <div class="text-xs text-gray-medium">
+        Max: {{ stats.production.max.toFixed(1) }} kW à {{ stats.production.maxTime }}
+      </div>
+    </div>
+
+    <!-- Consommation -->
+    <div class="card p-5">
+      <div class="flex items-start justify-between mb-3">
+        <div class="p-2 bg-yellow-primary bg-opacity-20 rounded-lg">
+          <svg class="w-6 h-6 text-yellow-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+        </div>
+        <span class="text-xs text-gray-light">kWh</span>
+      </div>
+      <div class="mb-1">
+        <div class="text-2xl font-bold text-white">{{ stats.consumption.total.toFixed(1) }}</div>
+        <div class="text-sm text-gray-light">Consommation totale</div>
+      </div>
+      <div class="text-xs text-gray-medium">
+        Max: {{ stats.consumption.max.toFixed(1) }} kW à {{ stats.consumption.maxTime }}
+      </div>
+    </div>
+
+    <!-- Bilan -->
+    <div class="card p-5">
+      <div class="flex items-start justify-between mb-3">
+        <div :class="['p-2 rounded-lg', stats.network.balance >= 0 ? 'bg-green-primary bg-opacity-20' : 'bg-red-primary bg-opacity-20']">
+          <svg class="w-6 h-6" :class="stats.network.balance >= 0 ? 'text-green-primary' : 'text-red-primary'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+        </div>
+        <span class="text-xs text-gray-light">kWh</span>
+      </div>
+      <div class="mb-1">
+        <div class="text-2xl font-bold text-white">{{ Math.abs(stats.network.balance).toFixed(1) }}</div>
+        <div class="text-sm text-gray-light">
+          {{ stats.network.balance >= 0 ? 'Injection réseau' : 'Soutirage réseau' }}
+        </div>
+      </div>
+      <div class="text-xs text-gray-medium">
+        {{ stats.network.balance >= 0 ? 'Excédent' : 'Déficit' }} énergétique
+      </div>
+    </div>
+
+    <!-- Autoproduction -->
+    <div class="card p-5">
+      <div class="flex items-start justify-between mb-3">
+        <div class="p-2 bg-blue-secondary bg-opacity-20 rounded-lg">
+          <svg class="w-6 h-6 text-blue-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        </div>
+        <span class="text-xs text-gray-light">%</span>
+      </div>
+      <div class="mb-1">
+        <div class="text-2xl font-bold text-white">{{ stats.selfConsumption.toFixed(0) }}%</div>
+        <div class="text-sm text-gray-light">Autoconsommation</div>
+      </div>
+      <div class="text-xs text-gray-medium">
+        Part de production consommée localement
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+defineProps({
+  stats: {
+    type: Object,
+    required: true
+  }
+})
+</script>
+
+================================================================================
+FICHIER: main.js
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\main.js
+================================================================================
+
+import { createApp } from 'vue'
+import App from './App.vue'
+import './assets/styles/main.css'
+
+createApp(App).mount('#app')
+
+================================================================================
+FICHIER: services\animationStore.js
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\services\animationStore.js
+================================================================================
+
+import { reactive } from 'vue';
+
+export const animationStore = reactive({
+  isPlaying: false,
+  currentIndex: null,
+  timer: null,
+  animationSpeed: 200, // ms per step
+
+  play(totalSteps) {
+    if (this.isPlaying) {
+      return;
+    }
+
+    this.isPlaying = true;
+    this.currentIndex = this.currentIndex !== null ? this.currentIndex : 0;
+
+    this.timer = setInterval(() => {
+      if (this.currentIndex < totalSteps - 1) {
+        this.currentIndex++;
+      } else {
+        this.stop();
+      }
+    }, this.animationSpeed);
+  },
+
+  stop() {
+    clearInterval(this.timer);
+    this.timer = null;
+    this.isPlaying = false;
+    this.currentIndex = null;
+  }
+});
+
+================================================================================
+FICHIER: services\chartConfig.js
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\services\chartConfig.js
+================================================================================
+
+export function getChartConfig(type) {
+  const baseConfig = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false
+    },
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        backgroundColor: 'rgba(26, 31, 46, 0.95)',
+        titleColor: '#f3f4f6',
+        bodyColor: '#f3f4f6',
+        borderColor: '#2d3748',
+        borderWidth: 1,
+        padding: 12,
+        displayColors: false,
+        callbacks: {
+          label: function(context) {
+            return `${context.parsed.y.toFixed(2)} kW`
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          color: 'rgba(45, 55, 72, 0.5)',
+          drawBorder: false
+        },
+        ticks: {
+          color: '#9ca3af',
+          maxRotation: 0,
+          autoSkip: true,
+          maxTicksLimit: 12,
+          font: {
+            size: 11
+          }
+        }
+      },
+      y: {
+        grid: {
+          color: 'rgba(45, 55, 72, 0.5)',
+          drawBorder: false
+        },
+        ticks: {
+          color: '#9ca3af',
+          font: {
+            size: 11
+          },
+          callback: function(value) {
+            return value.toFixed(0) + ' kW'
+          }
+        }
+      }
+    }
+  }
+
+  // Configuration spécifique par type
+  if (type === 'network') {
+    baseConfig.scales.y.ticks.callback = function(value) {
+      return (value >= 0 ? '+' : '') + value.toFixed(0) + ' kW'
+    }
+    baseConfig.plugins.tooltip.callbacks.label = function(context) {
+      const value = context.parsed.y
+      const label = value >= 0 ? 'Injection: +' : 'Soutirage: '
+      return label + Math.abs(value).toFixed(2) + ' kW'
+    }
+  }
+
+  if (type === 'batterySoc') {
+    baseConfig.scales.y.ticks.callback = function(value) {
+        return value.toFixed(0) + ' %';
+    };
+    baseConfig.plugins.tooltip.callbacks.label = function(context) {
+        return `Charge: ${context.parsed.y.toFixed(1)} %`;
+    };
+  }
+
+  return baseConfig
+}
+
+================================================================================
+FICHIER: services\dataLoader.js
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\services\dataLoader.js
+================================================================================
+
+import Papa from 'papaparse'
+
+export async function loadCSVData() {
+  try {
+    // Charger les 3 fichiers CSV
+    const [production, consumption, metadata] = await Promise.all([
+      loadCSV('/data/solar_production_2.csv'),
+      loadCSV('/data/consumption.csv'),
+      loadJSON('/data/metadata.json')
+    ])
+
+    return {
+      production,
+      consumption,
+      metadata
+    }
+  } catch (error) {
+    throw new Error(`Erreur de chargement des données:  $ {error.message}`)
+  }
+}
+
+async function loadCSV(path) {
+  const response = await fetch(path)
+  
+  if (!response.ok) {
+    throw new Error(`Fichier non trouvé:  $ {path}`)
+  }
+  
+  const csvText = await response.text()
+  
+  return new Promise((resolve, reject) => {
+    Papa.parse(csvText, {
+      header: true,
+      dynamicTyping: true,
+      skipEmptyLines: true,
+      delimiter: ',',
+      complete: (results) => {
+        if (results.errors.length > 0) {
+          console.warn('Erreurs de parsing CSV:', results.errors)
+        }
+        resolve(results.data)
+      },
+      error: (error) => {
+        reject(error)
+      }
+    })
+  })
+}
+
+async function loadJSON(path) {
+  const response = await fetch(path)
+  
+  if (!response.ok) {
+    throw new Error(`Fichier non trouvé: ${path}`)
+  }
+  
+  return response.json()
+}
+
+================================================================================
+FICHIER: services\dataProcessor.js
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\services\dataProcessor.js
+================================================================================
+
+/**
+ * Processes raw production and consumption data for a specific date to generate chart-ready series,
+ * including a battery simulation.
+ * @param {Array} productionData - Raw production data.
+ * @param {Array} consumptionData - Raw consumption data.
+ * @param {string} dateString - The date to process data for (e.g., '2023-06-21').
+ * @param {number} batteryCapacityKwh - The total capacity of the battery in kWh.
+ * @returns {Object} - Contains arrays for production, consumption, network, and battery series.
+ */
+export function processDataForDate(productionData, consumptionData, dateString, batteryCapacityKwh = 0) {
+  // Filter data for the selected date
+  const productionFiltered = productionData.filter(row => row.timestamp.startsWith(dateString));
+  const consumptionFiltered = consumptionData.filter(row => row.timestamp.startsWith(dateString));
+
+  // --- Initialize Battery Simulation ---
+  const timeStepHours = 0.25; // Data is in 15-minute intervals
+  const minSoc = 0.10; // Minimum state of charge
+  const maxSoc = 0.80; // Maximum state of charge
+  let batteryStateOfChargeKwh = batteryCapacityKwh * 0.50; // Start the day at 50% charge
+
+  const processed = {
+    production: [],
+    consumption: [],
+    network: [],
+    battery: [],
+    batterySoc: []
+  };
+
+  // Map and process data point by point
+  for (let i = 0; i < productionFiltered.length; i++) {
+    const prodRow = productionFiltered[i];
+    const consRow = consumptionFiltered.find(c => c.timestamp === prodRow.timestamp) || { consumption_kw: 0 };
+
+    const time = prodRow.timestamp.split(' ')[1].substring(0, 5);
+    const productionKw = prodRow.production_kw || 0;
+    const consumptionKw = consRow.consumption_kw || 0;
+    
+    // Net power before battery interaction
+    const netPowerKw = productionKw - consumptionKw;
+
+    let batteryPowerKw = 0;
+    let finalNetworkKw = 0;
+
+    if (batteryCapacityKwh > 0) {
+      // Record SoC *before* this interval's action
+      const socPercentage = (batteryStateOfChargeKwh / batteryCapacityKwh) * 100;
+      processed.batterySoc.push({ time, value: socPercentage, timestamp: prodRow.timestamp });
+
+      if (netPowerKw > 0) { // Excess production -> Charge battery
+        const maxChargePowerKw = (batteryCapacityKwh * maxSoc - batteryStateOfChargeKwh) / timeStepHours;
+        const chargePowerKw = Math.min(netPowerKw, maxChargePowerKw);
+        
+        batteryPowerKw = -chargePowerKw; // Negative for charging
+        batteryStateOfChargeKwh += chargePowerKw * timeStepHours;
+        finalNetworkKw = netPowerKw - chargePowerKw; // Remaining goes to grid
+
+      } else { // Deficit -> Discharge battery
+        const maxDischargePowerKw = (batteryStateOfChargeKwh - batteryCapacityKwh * minSoc) / timeStepHours;
+        const dischargePowerKw = Math.min(Math.abs(netPowerKw), maxDischargePowerKw);
+
+        batteryPowerKw = dischargePowerKw; // Positive for discharging
+        batteryStateOfChargeKwh -= dischargePowerKw * timeStepHours;
+        finalNetworkKw = netPowerKw + dischargePowerKw; // Remaining is drawn from grid
+      }
+    } else {
+        processed.batterySoc.push({ time, value: 0, timestamp: prodRow.timestamp });
+        finalNetworkKw = netPowerKw;
+    }
+
+
+    processed.production.push({ time, value: productionKw, timestamp: prodRow.timestamp });
+    processed.consumption.push({ time, value: consumptionKw, timestamp: prodRow.timestamp });
+    processed.battery.push({ time, value: batteryPowerKw, timestamp: prodRow.timestamp });
+    processed.network.push({ time, value: finalNetworkKw, timestamp: prodRow.timestamp });
+  }
+
+  return processed;
+}
+
+
+/**
+ * Calculates summary statistics for the day based on processed data.
+ * @param {Array} production - Processed production series.
+ * @param {Array} consumption - Processed consumption series.
+ * @param {Array} network - Processed network series (after battery).
+ * @returns {Object} - An object with daily statistics.
+ */
+export function calculateDailyStats(production, consumption, network) {
+  if (!production || !production.length) return null;
+  // Cumul énergétique (kWh) - pas de 15 min = 0.25h
+  const timeStep = 0.25
+
+  const productionTotal = production.reduce((sum, d) => sum + d.value, 0) * timeStep
+  const consumptionTotal = consumption.reduce((sum, d) => sum + d.value, 0) * timeStep
+  
+  // Le bilan réseau est maintenant la somme des valeurs du réseau final
+  const networkBalance = network.reduce((sum, d) => sum + d.value, 0) * timeStep;
+
+
+  // Valeurs max et leur timing
+  const productionMax = Math.max(...production.map(d => d.value))
+  const productionMaxTime = production.find(d => d.value === productionMax)?.time || ''
+
+  const consumptionMax = Math.max(...consumption.map(d => d.value))
+  const consumptionMaxTime = consumption.find(d => d.value === consumptionMax)?.time || ''
+
+  // Taux d'autoconsommation: (Production Solaire - Injection Réseau) / Consommation Totale
+  const totalInjected = network.filter(d => d.value > 0).reduce((sum, d) => sum + d.value, 0) * timeStep;
+  const selfConsumedFromProd = productionTotal - totalInjected;
+  const selfConsumption = consumptionTotal > 0 ? (selfConsumedFromProd / consumptionTotal) * 100 : 0;
+
+
+  return {
+    production: {
+      total: productionTotal,
+      max: productionMax,
+      maxTime: productionMaxTime
+    },
+    consumption: {
+      total: consumptionTotal,
+      max: consumptionMax,
+      maxTime: consumptionMaxTime
+    },
+    network: {
+      balance: networkBalance
+    },
+    selfConsumption: Math.max(0, Math.min(100, selfConsumption)) // Clamp between 0 and 100
+  }
+}
+
+================================================================================
+FICHIER: services\timeIndicatorPlugin.js
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\services\timeIndicatorPlugin.js
+================================================================================
+
+import { animationStore } from '@/services/animationStore';
+
+// This plugin draws a "luminous point" on each dataset's curve to indicate the current time of the animation.
+export const timeIndicatorPlugin = {
+  id: 'timeIndicator',
+  afterDraw: (chart) => {
+    // We only draw the points if the animation is playing and we have a valid index.
+    if (animationStore.isPlaying && animationStore.currentIndex !== null) {
+      const ctx = chart.ctx;
+      
+      chart.data.datasets.forEach((dataset, i) => {
+        const meta = chart.getDatasetMeta(i);
+        
+        // Ensure the dataset is visible and has data for the current index
+        if (meta.hidden || !meta.data[animationStore.currentIndex]) {
+          return;
+        }
+
+        const point = meta.data[animationStore.currentIndex];
+        const { x, y } = point.getProps(['x', 'y'], true);
+        const pointColor = dataset.borderColor || 'rgba(255, 255, 255, 0.8)';
+
+        // Draw the luminous point
+        ctx.save();
+        ctx.fillStyle = pointColor;
+        ctx.shadowColor = pointColor;
+        ctx.shadowBlur = 8;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+  }
+};
+
+================================================================================
+FICHIER: utils\csvParser.js
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\utils\csvParser.js
+================================================================================
+
+/**
+ * Parse un fichier CSV et filtre les données pour une date spécifique
+ * @param {string} csvText - Contenu du fichier CSV
+ * @param {string} targetDate - Date à filtrer (format YYYY-MM-DD)
+ * @returns {Array} Tableau d'objets avec timestamp, time et value
+ */
+export function parseCSV(csvText, targetDate) {
+  const lines = csvText.trim().split('\n')
+  
+  if (lines.length < 2) {
+    console.warn('⚠️ CSV vide ou invalide')
+    return []
+  }
+  
+  const data = []
+  
+  // Ignorer la première ligne (en-têtes)
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim()
+    
+    // Ignorer les lignes vides
+    if (!line) continue
+    
+    const parts = line.split(',')
+    
+    // Vérifier que la ligne a au moins 2 colonnes
+    if (parts.length < 2) {
+      console.warn(`⚠️ Ligne ignorée (format invalide): ${line}`)
+      continue
+    }
+    
+    const timestamp = parts[0]?.trim()
+    const valueStr = parts[1]?.trim()
+    
+    // Vérifier que le timestamp et la valeur existent
+    if (!timestamp || !valueStr) {
+      console.warn(`⚠️ Ligne ignorée (données manquantes): ${line}`)
+      continue
+    }
+    
+    // Extraire la date du timestamp
+    const dateFromTimestamp = timestamp.split(' ')[0]
+    
+    // Filtrer par date si spécifiée
+    if (targetDate && dateFromTimestamp !== targetDate) {
+      continue
+    }
+    
+    // Parser la valeur
+    const value = parseFloat(valueStr)
+    
+    // Vérifier que la valeur est un nombre valide
+    if (isNaN(value)) {
+      console.warn(`⚠️ Ligne ignorée (valeur invalide): ${line}`)
+      continue
+    }
+    
+    // Extraire l'heure (format HH:MM)
+    const timePart = timestamp.split(' ')[1]
+    const time = timePart ? timePart.substring(0, 5) : '00:00'
+    
+    data.push({
+      timestamp,
+      time,
+      value
+    })
+  }
+  
+  console.log(`✅ ${data.length} lignes valides parsées`)
+  
+  return data
+}
+
+================================================================================
+FICHIER: utils\dateHelpers.js
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\utils\dateHelpers.js
+================================================================================
+
+/**
+ * Formate une date au format YYYY-MM-DD
+ */
+export function formatDate(date) {
+  if (typeof date === 'string') {
+    return date.split(' ')[0]
+  }
+  
+  if (date instanceof Date) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  
+  return ''
+}
+
+/**
+ * Extrait la date d'un timestamp
+ */
+export function extractDate(timestamp) {
+  return timestamp.split(' ')[0]
+}
+
+/**
+ * Extrait l'heure d'un timestamp (format HH:MM)
+ */
+export function extractTime(timestamp) {
+  return timestamp.split(' ')[1]?.substring(0, 5) || ''
+}
+
+/**
+ * Vérifie si une date est valide
+ */
+export function isValidDate(dateString) {
+  const date = new Date(dateString)
+  return date instanceof Date && !isNaN(date)
+}
+
+/**
+ * Retourne la liste des dates entre deux dates
+ */
+export function getDateRange(startDate, endDate) {
+  const dates = []
+  const current = new Date(startDate)
+  const end = new Date(endDate)
+
+  while (current <= end) {
+    dates.push(formatDate(current))
+    current.setDate(current.getDate() + 1)
+  }
+
+  return dates
+}
+
+/**
+ * Formate une date en français
+ */
+export function formatDateFR(dateString) {
+  const date = new Date(dateString)
+  const options = { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  }
+  return date.toLocaleDateString('fr-FR', options)
+}
+
+================================================================================
+FICHIER: utils\main.css
+CHEMIN COMPLET: C:\Users\ltsawv5.LTSW2K\Documents\projects\perso\moonlight\web-app\src\utils\main.css
+================================================================================
+
+@import './theme.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-dark-border;
+  }
+
+  body {
+    @apply bg-dark-bg text-gray-light font-sans antialiased;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-gray-dark rounded-xl shadow-lg border border-dark-border;
+    @apply hover:shadow-xl transition-shadow duration-300;
+  }
+
+  .input-field {
+    @apply bg-dark-bg border border-dark-border rounded-lg px-4 py-2;
+    @apply text-white placeholder-gray-medium;
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-primary focus:border-transparent;
+    @apply transition-all duration-200;
+  }
+
+  .btn-primary {
+    @apply bg-blue-primary hover:bg-blue-accent text-white font-medium;
+    @apply px-6 py-2.5 rounded-lg;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-primary focus:ring-offset-2 focus:ring-offset-gray-dark;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-medium hover:bg-gray-light text-white font-medium;
+    @apply px-6 py-2.5 rounded-lg;
+    @apply transition-all duration-200;
+  }
+
+  /* Scrollbar personnalisée */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-dark-bg rounded-lg;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-medium rounded-lg hover:bg-gray-light;
+  }
+
+  /* Animation d'apparition */
+  .fade-in {
+    animation: fadeIn 0.5s ease-in;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    @apply bg-gray-medium animate-pulse rounded;
+  }
+
+  /* État de chargement */
+  .loading-spinner {
+    @apply inline-block w-8 h-8 border-4 border-gray-medium border-t-blue-primary rounded-full;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .bg-gradient-radial {
+    background: radial-gradient(circle at center, var(--tw-gradient-stops));
+  }
+}
+
+/* Animations personnalisées */
+.slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Amélioration de la lisibilité */
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Focus visible pour l'accessibilité */
+*:focus-visible {
+  @apply outline-2 outline-offset-2 outline-blue-primary;
+}
+
+/* Optimisation des performances */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+================================================================================
+FIN DE LA CONCATENATION
+Nombre de fichiers traités: 22
+================================================================================
